@@ -15,7 +15,7 @@
     <!-- Versiones de referencia. Si Maven no encuentra alguna, busca la última en mvnrepository.com -->
     <selenium.version>4.41.0</selenium.version>
     <cucumber.version>7.34.4</cucumber.version>
-    <junit.version>5.11.4</junit.version>
+    <junit.version>5.14.2</junit.version>
 
     <!-- Interruptores de ejecución (se cambian con -D en la terminal) -->
     <modo>local</modo>              <!-- local | nube -->
