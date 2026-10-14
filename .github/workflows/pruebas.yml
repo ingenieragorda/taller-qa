@@ -1,0 +1,90 @@
+name: pruebas-qa
+
+on:
+  push:
+  workflow_dispatch:
+
+concurrency:
+  group: pruebas-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  funcionales:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+      - name: Ejecutar pruebas
+        run: mvn -B test -Dheadless=true
+      - name: Resumen de resultados
+        if: always()
+        run: |
+          echo "## Resultados de las pruebas funcionales" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          grep -h "Tests run" target/surefire-reports/*.txt >> "$GITHUB_STEP_SUMMARY" || echo "Sin reportes" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - name: Guardar reportes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reportes-funcionales
+          path: |
+            target/surefire-reports/
+            target/reporte-cucumber.html
+
+  nube:
+    runs-on: ubuntu-latest
+    env:
+      LT_USERNAME: ${{ secrets.LT_USERNAME }}
+      LT_ACCESS_KEY: ${{ secrets.LT_ACCESS_KEY }}
+    steps:
+      - name: Aviso si no hay credenciales
+        if: env.LT_USERNAME == ''
+        run: |
+          echo "Sin credenciales de TestMu AI. Este trabajo no ejecuta pruebas en la nube." >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/checkout@v4
+        if: env.LT_USERNAME != ''
+      - uses: actions/setup-java@v4
+        if: env.LT_USERNAME != ''
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+      - name: Ejecutar LoginTest en la nube
+        if: env.LT_USERNAME != ''
+        run: mvn -B test -Dmodo=nube -Dtest=LoginTest
+
+  seguridad:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+      - name: Pruebas de cabeceras (los fallos son hallazgos, no errores)
+        continue-on-error: true
+        run: mvn -B test -Pseguridad
+      - name: Resumen de hallazgos
+        if: always()
+        run: |
+          echo "## Hallazgos de seguridad (cabeceras HTTP)" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          grep -h -E "Tests run|FAIL|Falta|Expone" target/surefire-reports/*.txt >> "$GITHUB_STEP_SUMMARY" || echo "Sin reportes" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - name: Escaneo base con OWASP ZAP
+        run: |
+          mkdir -p zap && chmod 777 zap
+          docker run --rm -v "$(pwd)/zap":/zap/wrk:rw ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py -t http://testphp.vulnweb.com -r reporte-zap.html -I
+      - name: Guardar reporte de ZAP
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reporte-zap
+          path: zap/
