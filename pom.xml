@@ -20,7 +20,7 @@
     <!-- Interruptores de ejecución (se cambian con -D en la terminal) -->
     <modo>local</modo>              <!-- local | nube -->
     <headless>false</headless>      <!-- true = sin abrir ventana (CI) -->
-    <url>http://testphp.vulnweb.com</url>  <!-- sitio para las pruebas de seguridad -->
+    <url>http://demo.testfire.net</url>  <!-- sitio para las pruebas de seguridad -->
     <tags.incluir></tags.incluir>
     <tags.excluir>seguridad</tags.excluir>
   </properties>
