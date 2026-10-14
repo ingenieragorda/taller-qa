@@ -81,7 +81,7 @@ jobs:
         run: |
           mkdir -p zap && chmod 777 zap
           docker run --rm -v "$(pwd)/zap":/zap/wrk:rw ghcr.io/zaproxy/zaproxy:stable \
-            zap-baseline.py -t http://testphp.vulnweb.com -r reporte-zap.html -I
+            zap-baseline.py -t http://demo.testfire.net -r reporte-zap.html -I
       - name: Guardar reporte de ZAP
         if: always()
         uses: actions/upload-artifact@v4
